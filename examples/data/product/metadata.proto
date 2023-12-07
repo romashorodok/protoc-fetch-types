@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package product;
+
+message Metadata {
+   int32 count = 1; 
+}

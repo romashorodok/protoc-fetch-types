@@ -20,16 +20,16 @@ import (
 var storage embed.FS
 
 type (
-	RequestFuncTree = map[resources.ProtoID]*requestfunc.RequestFuncObject
-	TypeAliasTree   = map[resources.ProtoID]*typealias.TypeAliasObject
-
-	MessageRegistry = map[resources.ProtoID]*proxy.MessageProxy
-	MethodRegistry  = map[resources.ProtoID]*proxy.MethodProxy
+	T_requestFuncTree = map[resources.ProtoID]*requestfunc.RequestFuncObject
+	T_typeAliasTree   = map[resources.ProtoID]*typealias.TypeAliasObject
 )
 
 var (
-	methodRegistry  MethodRegistry  = make(MethodRegistry)
-	messageRegistry MessageRegistry = make(MessageRegistry)
+	methodRegistry = make(proxy.T_methodRegistry)
+	// TODO: Use registry with file name instead
+	messageRegistry = make(proxy.T_messageRegistry)
+
+	messageFilenameRegistry = make(proxy.T_messageFilenameRegistry)
 )
 
 func fillRegistry(request *plugin.CodeGeneratorRequest) {
@@ -40,7 +40,7 @@ func fillRegistry(request *plugin.CodeGeneratorRequest) {
 		// each package may be with same name but exist in different directory
 		// user/meta/fields.proto - meta
 		// product/meta/fields.proto - meta
-		log.Println(protoFile.GetDependency())
+		// log.Println(protoFile.GetDependency())
 
 		for _, protoService := range protoFile.Service {
 			serviceName := protoService.GetName()
@@ -48,6 +48,7 @@ func fillRegistry(request *plugin.CodeGeneratorRequest) {
 			for _, method := range protoService.Method {
 				methodProxy := proxy.NewMethodProxy(
 					fmt.Sprintf(".%s.%s", packageName, serviceName),
+					protoFile,
 					method,
 				)
 				methodRegistry[methodProxy.GetProtoID()] = methodProxy
@@ -56,10 +57,15 @@ func fillRegistry(request *plugin.CodeGeneratorRequest) {
 
 		for _, protoMessage := range protoFile.MessageType {
 			messageProxy := proxy.NewMessageProxy(
-				fmt.Sprintf(".%s", packageName),
-				protoMessage,
+				&proxy.NewMessageProxyParams{
+					PackageID:               fmt.Sprintf(".%s", packageName),
+					File:                    protoFile,
+					DescriptorProto:         protoMessage,
+					MessageFilenameRegistry: messageFilenameRegistry,
+				},
 			)
 			messageRegistry[messageProxy.GetProtoID()] = messageProxy
+			messageFilenameRegistry[messageProxy.GetFilenameProtoID()] = messageProxy
 		}
 	}
 }
@@ -78,9 +84,11 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 			continue
 		}
 
-		message.GetFieldsMessages()
+		nestedMessages := message.GetFieldsMessages()
 
-		// log.Println(messageFields)
+        log.Println("For message", message.GetName())
+		log.Println(nestedMessages)
+
 
 	}
 
