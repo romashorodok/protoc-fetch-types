@@ -1,0 +1,7 @@
+version: v1
+managed:
+  enabled: true
+plugins:
+  - plugin: protoc-gen-fetch-types
+    path: ./protoc-gen-fetch-types
+    out: ./examples/gen

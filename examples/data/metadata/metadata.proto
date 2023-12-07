@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package metadata;
+
+message Metadata {
+    string created_at = 1;
+}

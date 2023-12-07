@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "data/user.proto";
+import "data/metadata/metadata.proto";
+
+package service;
+
+service ProductService {
+    rpc ProductList(ProductListRequest) returns (ProductListResponse) {
+        option(google.api.http) = {
+            get: "/{version}/products",
+        };
+    };
+
+    rpc ProductDelete(ProductDeleteRequest) returns (ProductDeleteResponse) {
+        option(google.api.http) = {
+            delete: "/{version}/product/{id}",
+        };
+    };
+
+    rpc ProductOwnerGet(ProductOwnerGetRequest) returns (ProductOwnerGetResponse) {
+        option(google.api.http) = {
+            get: "/{version}/product/{id}/owner",
+        };
+    };
+}
+
+message ProductOwnerGetRequest {
+    data.UserCursor cursor = 1;
+    metadata.Metadata params = 2;
+}
+
+message ProductOwnerGetResponse {
+    data.User user = 1;
+}
+
+message Product {
+    reserved 1;
+    string title = 2;
+    float price = 3;
+}
+
+message Cursor {
+    int32 position = 1;
+}
+
+message ProductListRequest {
+    Cursor cursor = 1;
+}
+message ProductListResponse {
+    repeated Product productList = 1; 
+}
+
+message ProductDeleteRequest {
+}
+
+message ProductDeleteResponse {
+    bool ok = 1;
+}

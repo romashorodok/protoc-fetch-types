@@ -1,0 +1,13 @@
+version: v1beta1
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+build:
+  roots:
+    - examples
+deps:
+  - buf.build/googleapis/googleapis
+

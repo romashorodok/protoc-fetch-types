@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package data;
+
+message User {
+    reserved 1;
+    string username = 2;
+}
+
+message UserCursor {
+    string direction = 1;
+}
