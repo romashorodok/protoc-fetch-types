@@ -37,6 +37,7 @@ var (
 
 func fillRegistry(request *plugin.CodeGeneratorRequest) {
 	for _, protoFile := range request.ProtoFile {
+
 		packageName := protoFile.GetPackage()
 
 		for _, protoService := range protoFile.Service {
@@ -87,20 +88,13 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
 		}
 		typeAliasTree[message.GetFilenameProtoID()] = typealias.New(storage, message)
-
 	}
 
-	for _, message := range typeAliasTree {
-		err := message.WriteInto(&builder)
-		log.Println(err)
+	for _, typeAliases := range typeAliasTree {
+		typeAliases.WriteInto(&builder)
 	}
 
-	// typeAliasTree := make(TypeAliasTree)
-	// requestFuncTree := make(RequestFuncTree)
-
-	_ = req
-
-	_ = storage
+	log.Println(typeAliasTree)
 
 	return builder.String()
 }
@@ -117,29 +111,38 @@ func main() {
 		log.Panic("Unable deserialize request", err)
 	}
 
-	result := generate(req)
+	targetFile := "fetch_types.proto"
 
-	var respFiles []*plugin.CodeGeneratorResponse_File
-
+	var generateTargetFile bool
 	for _, file := range req.FileToGenerate {
-		file := fmt.Sprintf("%s%s", strings.TrimSuffix(file, ".proto"), ".ts")
-		respFiles = append(respFiles, &plugin.CodeGeneratorResponse_File{
-			Name:    proto.String(file),
-			Content: proto.String(result),
-		})
+		if file == targetFile {
+			generateTargetFile = true
+			break
+		}
 	}
 
-	resp := &plugin.CodeGeneratorResponse{
-		File: respFiles,
-	}
+	if generateTargetFile {
+		result := generate(req)
 
-	res, err := proto.Marshal(resp)
-	if err != nil {
-		log.Panic("Unable serialize response", err)
-	}
+		respFiles := []*plugin.CodeGeneratorResponse_File{
+			{
+				Name:    proto.String(fmt.Sprintf("%s%s", strings.TrimSuffix(targetFile, ".proto"), ".ts")),
+				Content: proto.String(result),
+			},
+		}
 
-	_, err = os.Stdout.Write(res)
-	if err != nil {
-		log.Panic("Unable send response", err)
+		resp := &plugin.CodeGeneratorResponse{
+			File: respFiles,
+		}
+
+		res, err := proto.Marshal(resp)
+		if err != nil {
+			log.Panic("Unable serialize response", err)
+		}
+
+		_, err = os.Stdout.Write(res)
+		if err != nil {
+			log.Panic("Unable send response", err)
+		}
 	}
 }
