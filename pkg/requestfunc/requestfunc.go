@@ -2,9 +2,7 @@ package requestfunc
 
 import (
 	"embed"
-	"log"
 
-	"github.com/romashorodok/protoc-gen-fetch-types/pkg/resources"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/templatebuilder"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
@@ -22,18 +20,18 @@ type NewParams struct {
 }
 
 func New(storage embed.FS, ref *descriptorpb.MethodDescriptorProto, params *NewParams) *RequestFuncObject {
-	templateFile, err := storage.ReadFile(resources.FUNC_REQUEST_TEMPLATE_FILE)
-	if err != nil {
-		log.Panicf("Unable read %s at storage %+v", resources.FUNC_REQUEST_TEMPLATE_FILE, storage)
-	}
-
-	tmpl := templatebuilder.New(templateFile, resources.FUNC_REQUEST_TEMPLATE_FILE)
+	// templateFile, err := storage.ReadFile(resources.FUNC_REQUEST_TEMPLATE_FILE)
+	// if err != nil {
+	// 	log.Panicf("Unable read %s at storage %+v", resources.FUNC_REQUEST_TEMPLATE_FILE, storage)
+	// }
+	//
+	// tmpl := templatebuilder.New(templateFile, resources.FUNC_REQUEST_TEMPLATE_FILE)
 
 	return &RequestFuncObject{
 		Method:  params.Method,
 		Pattern: params.Pattern,
 
-		tmpl: tmpl,
-		ref:  ref,
+		// tmpl: tmpl,
+		ref: ref,
 	}
 }

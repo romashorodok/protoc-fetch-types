@@ -21,8 +21,11 @@ var storage embed.FS
 
 type (
 	T_requestFuncTree = map[resources.ProtoID]*requestfunc.RequestFuncObject
-	T_typeAliasTree   = map[resources.ProtoID]*typealias.TypeAliasObject
+	T_typeAliasTree   = map[resources.FilenameProtoID]*typealias.TypeAlias
 )
+
+// requestFuncTree = make(T_requestFuncTree)
+var typeAliasTree = make(T_typeAliasTree)
 
 var (
 	methodRegistry = make(proxy.T_methodRegistry)
@@ -35,12 +38,6 @@ var (
 func fillRegistry(request *plugin.CodeGeneratorRequest) {
 	for _, protoFile := range request.ProtoFile {
 		packageName := protoFile.GetPackage()
-
-		// TODO: i know dependency of each file, i need get messages from it by aliasing it
-		// each package may be with same name but exist in different directory
-		// user/meta/fields.proto - meta
-		// product/meta/fields.proto - meta
-		// log.Println(protoFile.GetDependency())
 
 		for _, protoService := range protoFile.Service {
 			serviceName := protoService.GetName()
@@ -86,10 +83,16 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 
 		nestedMessages := message.GetFieldsMessages()
 
-        log.Println("For message", message.GetName())
-		log.Println(nestedMessages)
+		for _, msg := range nestedMessages {
+			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
+		}
+		typeAliasTree[message.GetFilenameProtoID()] = typealias.New(storage, message)
 
+	}
 
+	for _, message := range typeAliasTree {
+		err := message.WriteInto(&builder)
+		log.Println(err)
 	}
 
 	// typeAliasTree := make(TypeAliasTree)
@@ -109,19 +112,25 @@ func main() {
 	}
 
 	req := &plugin.CodeGeneratorRequest{}
+
 	if err = proto.Unmarshal(request, req); err != nil {
 		log.Panic("Unable deserialize request", err)
 	}
 
-	_ = generate(req)
+	result := generate(req)
+
+	var respFiles []*plugin.CodeGeneratorResponse_File
+
+	for _, file := range req.FileToGenerate {
+		file := fmt.Sprintf("%s%s", strings.TrimSuffix(file, ".proto"), ".ts")
+		respFiles = append(respFiles, &plugin.CodeGeneratorResponse_File{
+			Name:    proto.String(file),
+			Content: proto.String(result),
+		})
+	}
 
 	resp := &plugin.CodeGeneratorResponse{
-		File: []*plugin.CodeGeneratorResponse_File{
-			{
-				Name:    proto.String("fetch-types.ts"),
-				Content: proto.String("test"),
-			},
-		},
+		File: respFiles,
 	}
 
 	res, err := proto.Marshal(resp)

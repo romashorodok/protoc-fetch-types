@@ -19,12 +19,17 @@ type (
 type ProtoProxy interface {
 	GetProtoID() string
 	GetFilenameProtoID() resources.FilenameProtoID
+	GetPackageName() string
 }
 
 type MethodProxy struct {
 	*descriptorpb.MethodDescriptorProto
 	serviceID string
 	file      *descriptorpb.FileDescriptorProto
+}
+
+func (p *MethodProxy) GetPackageName() string {
+	return p.file.GetPackage()
 }
 
 func (p *MethodProxy) GetFilenameProtoID() resources.FilenameProtoID {
@@ -50,6 +55,11 @@ type MessageProxy struct {
 	packageID               string
 	file                    *descriptorpb.FileDescriptorProto
 	messageFilenameRegistry T_messageFilenameRegistry
+}
+
+// GetPackageName implements ProtoProxy.
+func (p *MessageProxy) GetPackageName() string {
+	return p.file.GetPackage()
 }
 
 func (p *MessageProxy) GetFilenameProtoID() resources.FilenameProtoID {
