@@ -2,36 +2,92 @@ package requestfunc
 
 import (
 	"embed"
+	"fmt"
+	"io"
+	"log"
 
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/proxy"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/templatebuilder"
-	"google.golang.org/protobuf/types/descriptorpb"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/tokenutils"
 )
 
-type RequestFuncObject struct {
-	Method  string
-	Pattern string
-
-	tmpl *templatebuilder.TemplateBuilder
-	ref  *descriptorpb.MethodDescriptorProto
+type RequestFunc struct {
+	tmpl                    *templatebuilder.TemplateBuilder
+	ref                     *proxy.MethodProxy
+	messageFilenameRegistrt proxy.T_messageFilenameRegistry
 }
 
-type NewParams struct {
-	RequestFuncObject
+type template_RequestParams struct {
+	Name string
+	Type string
 }
 
-func New(storage embed.FS, ref *descriptorpb.MethodDescriptorProto, params *NewParams) *RequestFuncObject {
-	// templateFile, err := storage.ReadFile(resources.FUNC_REQUEST_TEMPLATE_FILE)
-	// if err != nil {
-	// 	log.Panicf("Unable read %s at storage %+v", resources.FUNC_REQUEST_TEMPLATE_FILE, storage)
-	// }
-	//
-	// tmpl := templatebuilder.New(templateFile, resources.FUNC_REQUEST_TEMPLATE_FILE)
+type template_RequestFunc struct {
+	Name          string
+	RequestMethod string
+	BodyTypeName  string
+	UriPath       string
 
-	return &RequestFuncObject{
-		Method:  params.Method,
-		Pattern: params.Pattern,
+	RequestParamsTypeName string
+	RequestParams         []*template_RequestParams
+}
 
-		// tmpl: tmpl,
-		ref: ref,
+func (s *RequestFunc) tmplStruct() *template_RequestFunc {
+	inputMessage := s.ref.GetInputMessage()
+
+	pattern, requestMethod, err := googleHttpAnnotation(s.ref)
+	if err != nil {
+		log.Printf("%s. For %s requestfunc.googleHtttpAnnotation", err, s.ref.GetName())
+		return nil
+	}
+
+	uriPath, params, err := parsePattern(pattern)
+	if err != nil {
+		log.Printf("%s. For %s requestfunc.parsePattern", err, s.ref.GetName())
+		return nil
+	}
+
+	var requestParams []*template_RequestParams
+
+	for _, param := range params {
+		requestParams = append(requestParams, &template_RequestParams{
+			Name: param,
+			Type: "string",
+		})
+	}
+
+	return &template_RequestFunc{
+		Name:                  s.ref.GetName(),
+		RequestMethod:         requestMethod,
+		BodyTypeName:          tokenutils.TypeAliasName(inputMessage),
+		UriPath:               uriPath,
+		RequestParamsTypeName: fmt.Sprintf("%sParams", s.ref.GetName()),
+		RequestParams:         requestParams,
+	}
+}
+
+func (s *RequestFunc) WriteInto(in io.Writer) error {
+	return s.tmpl.WriteInto(in, s.tmplStruct())
+}
+
+const TYPE_ALIAS_TEMPLATE_FILE = "templates/request_func.tmpl"
+
+type NewParamsRequest struct {
+	Storage                 embed.FS
+	MessageFilenameRegistry proxy.T_messageFilenameRegistry
+	Ref                     *proxy.MethodProxy
+}
+
+func New(params *NewParamsRequest) *RequestFunc {
+	templateFile, err := params.Storage.ReadFile(TYPE_ALIAS_TEMPLATE_FILE)
+	if err != nil {
+		log.Panicf("Unable read %s at storage %+v", TYPE_ALIAS_TEMPLATE_FILE, params.Storage)
+	}
+	tmpl := templatebuilder.New(templateFile, TYPE_ALIAS_TEMPLATE_FILE)
+
+	return &RequestFunc{
+		ref:                     params.Ref,
+		tmpl:                    tmpl,
+		messageFilenameRegistrt: params.MessageFilenameRegistry,
 	}
 }

@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/api/annotations.proto";
 import "data/user.proto";
 import "data/metadata/metadata.proto";
+import "data/metadata/null.proto";
 import "data/product/metadata.proto";
 
 package service;
@@ -23,6 +24,12 @@ service ProductService {
     rpc ProductOwnerGet(ProductOwnerGetRequest) returns (ProductOwnerGetResponse) {
         option(google.api.http) = {
             get: "/{version}/product/{id}/owner",
+        };
+    };
+    
+    rpc ProductStubGet(metadata.NullRequest) returns (metadata.NullRequest) {
+        option(google.api.http) = {
+            get: "/{stub=shelves/*}/product/{id}/owner",
         };
     };
 }

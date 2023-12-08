@@ -1,0 +1,9 @@
+
+type {{ .RequestParamsTypeName }} = { {{ range .RequestParams }}{{ .Name }}: {{ .Type }}; {{end}}};
+export function {{ .Name }}(authority: string, params: {{ .RequestParamsTypeName }}, body: {{ .BodyTypeName }}, init?: RequestInit) {
+  return new Request(`${authority}{{ .UriPath }}`, {
+    method: '{{ .RequestMethod }}',
+    body: JSON.stringify(body),
+    ...init,
+  });
+}

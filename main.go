@@ -16,16 +16,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//go:embed templates/func_request.tmpl templates/type_alias.tmpl
+//go:embed templates/request_func.tmpl templates/type_alias.tmpl
 var storage embed.FS
 
 type (
-	T_requestFuncTree = map[resources.ProtoID]*requestfunc.RequestFuncObject
+	T_requestFuncTree = map[resources.ProtoID]*requestfunc.RequestFunc
 	T_typeAliasTree   = map[resources.FilenameProtoID]*typealias.TypeAlias
 )
 
-// requestFuncTree = make(T_requestFuncTree)
-var typeAliasTree = make(T_typeAliasTree)
+var (
+	requestFuncTree = make(T_requestFuncTree)
+	typeAliasTree   = make(T_typeAliasTree)
+)
 
 var (
 	methodRegistry = make(proxy.T_methodRegistry)
@@ -45,9 +47,12 @@ func fillRegistry(request *plugin.CodeGeneratorRequest) {
 
 			for _, method := range protoService.Method {
 				methodProxy := proxy.NewMethodProxy(
-					fmt.Sprintf(".%s.%s", packageName, serviceName),
-					protoFile,
-					method,
+					&proxy.NewMethodProxyParams{
+						ServiceID:               fmt.Sprintf(".%s.%s", packageName, serviceName),
+						File:                    protoFile,
+						MethodDescriptor:        method,
+						MessageFilenameRegistry: messageFilenameRegistry,
+					},
 				)
 				methodRegistry[methodProxy.GetProtoID()] = methodProxy
 			}
@@ -88,13 +93,23 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
 		}
 		typeAliasTree[message.GetFilenameProtoID()] = typealias.New(storage, message)
+		requestFuncTree[method.GetFilenameProtoID()] = requestfunc.New(
+			&requestfunc.NewParamsRequest{
+				Storage:                 storage,
+				MessageFilenameRegistry: messageFilenameRegistry,
+				Ref:                     method,
+			},
+		)
+
 	}
 
 	for _, typeAliases := range typeAliasTree {
-		typeAliases.WriteInto(&builder)
+		_ = typeAliases.WriteInto(&builder)
 	}
 
-	log.Println(typeAliasTree)
+	for _, requestFunc := range requestFuncTree {
+		_ = requestFunc.WriteInto(&builder)
+	}
 
 	return builder.String()
 }
