@@ -30,10 +30,7 @@ var (
 )
 
 var (
-	methodRegistry = make(proxy.T_methodRegistry)
-	// TODO: Use registry with file name instead
-	messageRegistry = make(proxy.T_messageRegistry)
-
+	methodRegistry          = make(proxy.T_methodRegistry)
 	messageFilenameRegistry = make(proxy.T_messageFilenameRegistry)
 )
 
@@ -67,7 +64,6 @@ func fillRegistry(request *plugin.CodeGeneratorRequest) {
 					MessageFilenameRegistry: messageFilenameRegistry,
 				},
 			)
-			messageRegistry[messageProxy.GetProtoID()] = messageProxy
 			messageFilenameRegistry[messageProxy.GetFilenameProtoID()] = messageProxy
 		}
 	}
@@ -78,21 +74,19 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 
 	fillRegistry(req)
 
-	for protoID, method := range methodRegistry {
-		methodInputMessageID := method.GetInputType()
-		_ = protoID
+	for _, method := range methodRegistry {
+		inputMessage := method.GetInputMessage()
 
-		message, exist := messageRegistry[methodInputMessageID]
+		_, exist := messageFilenameRegistry[inputMessage.GetFilenameProtoID()]
 		if !exist {
 			continue
 		}
 
-		nestedMessages := message.GetFieldsMessages()
-
-		for _, msg := range nestedMessages {
+		for _, msg := range inputMessage.GetFieldsMessages() {
 			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
 		}
-		typeAliasTree[message.GetFilenameProtoID()] = typealias.New(storage, message)
+		typeAliasTree[inputMessage.GetFilenameProtoID()] = typealias.New(storage, inputMessage)
+
 		requestFuncTree[method.GetFilenameProtoID()] = requestfunc.New(
 			&requestfunc.NewParamsRequest{
 				Storage:                 storage,

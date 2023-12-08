@@ -32,8 +32,12 @@ type template_RequestFunc struct {
 	RequestParams         []*template_RequestParams
 }
 
+func (s *RequestFunc) GetInputMessage() *proxy.MessageProxy {
+	return s.ref.GetInputMessage()
+}
+
 func (s *RequestFunc) tmplStruct() *template_RequestFunc {
-	inputMessage := s.ref.GetInputMessage()
+	inputMessage := s.GetInputMessage()
 
 	pattern, requestMethod, err := googleHttpAnnotation(s.ref)
 	if err != nil {
