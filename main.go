@@ -76,6 +76,7 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 
 	for _, method := range methodRegistry {
 		inputMessage := method.GetInputMessage()
+		outputMessage := method.GetOutputMessage()
 
 		_, exist := messageFilenameRegistry[inputMessage.GetFilenameProtoID()]
 		if !exist {
@@ -85,7 +86,12 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 		for _, msg := range inputMessage.GetFieldsMessages() {
 			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
 		}
+		for _, msg := range outputMessage.GetFieldsMessages() {
+			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
+		}
+
 		typeAliasTree[inputMessage.GetFilenameProtoID()] = typealias.New(storage, inputMessage)
+		typeAliasTree[outputMessage.GetFilenameProtoID()] = typealias.New(storage, outputMessage)
 
 		requestFuncTree[method.GetFilenameProtoID()] = requestfunc.New(
 			&requestfunc.NewParamsRequest{
@@ -94,7 +100,6 @@ func generate(req *plugin.CodeGeneratorRequest) string {
 				Ref:                     method,
 			},
 		)
-
 	}
 
 	for _, typeAliases := range typeAliasTree {

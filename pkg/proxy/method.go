@@ -61,6 +61,10 @@ func (p *MethodProxy) GetInputMessage() *MessageProxy {
 	return p.searchMessageByTypeName(p.GetInputType())
 }
 
+func (p *MethodProxy) GetOutputMessage() *MessageProxy {
+	return p.searchMessageByTypeName(p.GetOutputType())
+}
+
 func (p *MethodProxy) GetProtoID() string {
 	return fmt.Sprintf("%s.%s", p.serviceID, p.GetName())
 }
