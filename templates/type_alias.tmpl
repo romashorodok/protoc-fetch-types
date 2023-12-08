@@ -1,2 +1,1 @@
 type {{ .Name }} = { {{ range .Parameters }}{{ .Name }}: {{if .Array }}Array{{ .Type | generic }};{{else}}{{ .Type }};{{end}} {{end}}};
-

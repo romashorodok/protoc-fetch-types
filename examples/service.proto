@@ -29,7 +29,7 @@ service ProductService {
 
 message ProductOwnerGetRequest {
     data.UserCursor cursor = 1;
-    metadata.Metadata params = 2;
+    repeated metadata.Metadata params = 2;
     product.Metadata product_metadata = 3;
 }
 
