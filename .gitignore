@@ -1,2 +1,4 @@
 protoc-gen-fetch-types
+.idea
 gen
+fetch_types.ts

@@ -55,7 +55,7 @@ func TsArray(field *descriptorpb.FieldDescriptorProto) bool {
 }
 
 func TypeAliasName(message *proxy.MessageProxy) string {
-	return fmt.Sprintf("%sPackage%s", message.GetName(), Uppercase(message.GetPackageName()))
+    return message.GetName()
 }
 
 func TypeAliasParamName(message *proxy.MessageProxy) string {

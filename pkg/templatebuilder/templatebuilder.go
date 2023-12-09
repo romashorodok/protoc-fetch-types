@@ -19,8 +19,17 @@ func generic(s string) template.HTML {
 	return template.HTML(fmt.Sprintf("<%s>", s))
 }
 
+func unsafe(s string) template.HTML {
+	return template.HTML(s)
+}
+
 func New(templateFile []byte, name string) *TemplateBuilder {
-	tmpl, err := template.New(name).Funcs(template.FuncMap{"generic": generic}).Parse(string(templateFile))
+	tmpl, err := template.New(name).
+		Funcs(template.FuncMap{
+			"generic": generic,
+			"unsafe":  unsafe,
+		}).
+		Parse(string(templateFile))
 	if err != nil {
 		log.Panicf("Unable create tempalte %s. %s", name, err)
 	}

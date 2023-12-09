@@ -12,11 +12,15 @@ type MethodProxy struct {
 	*descriptorpb.MethodDescriptorProto
 	serviceID               string
 	file                    *descriptorpb.FileDescriptorProto
-	messageFilenameRegistry T_messageFilenameRegistry
+	messageFilenameRegistry T_MessageFilenameRegistry
 }
 
 func (p *MethodProxy) GetPackageName() string {
 	return p.file.GetPackage()
+}
+
+func (p *MethodProxy) GetFileName() string {
+	return p.file.GetName()
 }
 
 func (p *MethodProxy) GetFilenameProtoID() resources.FilenameProtoID {

@@ -11,9 +11,11 @@ var NotFoundOriginError error = errors.New("not found parent fiel")
 const filenameSeparator = ":"
 
 type (
-	T_messageRegistry         = map[resources.ProtoID]*MessageProxy
-	T_methodRegistry          = map[resources.ProtoID]*MethodProxy
-	T_messageFilenameRegistry = map[resources.FilenameProtoID]*MessageProxy
+	T_MessageRegistry = map[resources.ProtoID]*MessageProxy
+	T_MethodRegistry  = map[resources.ProtoID]*MethodProxy
+
+	T_MessageFilenameRegistry = map[resources.FilenameProtoID]*MessageProxy
+	T_MethodFilenameRegistry  = map[resources.FilenameProtoID]*MethodProxy
 )
 
 type ProtoProxy interface {

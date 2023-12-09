@@ -14,7 +14,7 @@ import (
 type RequestFunc struct {
 	tmpl                    *templatebuilder.TemplateBuilder
 	ref                     *proxy.MethodProxy
-	messageFilenameRegistrt proxy.T_messageFilenameRegistry
+	messageFilenameRegistrt proxy.T_MessageFilenameRegistry
 }
 
 type template_RequestParams struct {
@@ -78,7 +78,7 @@ const TYPE_ALIAS_TEMPLATE_FILE = "templates/request_func.tmpl"
 
 type NewParamsRequest struct {
 	Storage                 embed.FS
-	MessageFilenameRegistry proxy.T_messageFilenameRegistry
+	MessageFilenameRegistry proxy.T_MessageFilenameRegistry
 	Ref                     *proxy.MethodProxy
 }
 
