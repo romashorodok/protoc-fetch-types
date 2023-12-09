@@ -129,9 +129,9 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 		)
 
 		for _, method := range methodFilenameRegistry {
-            if requestedFile != method.GetFileName() {
-                continue
-            }
+			if requestedFile != method.GetFileName() {
+				continue
+			}
 
 			requestFunc := requestfunc.New(
 				&requestfunc.NewParamsRequest{
