@@ -12,9 +12,8 @@ import (
 )
 
 type RequestFunc struct {
-	tmpl                    *templatebuilder.TemplateBuilder
-	ref                     *proxy.MethodProxy
-	messageFilenameRegistrt proxy.T_MessageFilenameRegistry
+	tmpl *templatebuilder.TemplateBuilder
+	ref  *proxy.MethodProxy
 }
 
 type template_RequestParams struct {
@@ -77,9 +76,8 @@ func (s *RequestFunc) WriteInto(in io.Writer) error {
 const TYPE_ALIAS_TEMPLATE_FILE = "templates/request_func.tmpl"
 
 type NewParamsRequest struct {
-	Storage                 embed.FS
-	MessageFilenameRegistry proxy.T_MessageFilenameRegistry
-	Ref                     *proxy.MethodProxy
+	Storage embed.FS
+	Ref     *proxy.MethodProxy
 }
 
 func New(params *NewParamsRequest) *RequestFunc {
@@ -90,8 +88,7 @@ func New(params *NewParamsRequest) *RequestFunc {
 	tmpl := templatebuilder.New(templateFile, TYPE_ALIAS_TEMPLATE_FILE)
 
 	return &RequestFunc{
-		ref:                     params.Ref,
-		tmpl:                    tmpl,
-		messageFilenameRegistrt: params.MessageFilenameRegistry,
+		ref:  params.Ref,
+		tmpl: tmpl,
 	}
 }

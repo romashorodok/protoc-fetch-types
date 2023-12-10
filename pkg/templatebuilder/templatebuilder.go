@@ -19,6 +19,10 @@ func generic(s string) template.HTML {
 	return template.HTML(fmt.Sprintf("<%s>", s))
 }
 
+func closing(s string) template.HTML {
+	return template.HTML(fmt.Sprintf("<%s />", s))
+}
+
 func unsafe(s string) template.HTML {
 	return template.HTML(s)
 }
@@ -28,6 +32,7 @@ func New(templateFile []byte, name string) *TemplateBuilder {
 		Funcs(template.FuncMap{
 			"generic": generic,
 			"unsafe":  unsafe,
+            "closing": closing,
 		}).
 		Parse(string(templateFile))
 	if err != nil {

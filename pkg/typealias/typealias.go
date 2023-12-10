@@ -2,6 +2,7 @@ package typealias
 
 import (
 	"embed"
+	"fmt"
 	"io"
 	"log"
 
@@ -29,30 +30,34 @@ type template_TypeAlias struct {
 func (s *TypeAlias) tmplStruct() template_TypeAlias {
 	var params []*template_TypeAliasParams
 
-	// for _, message := range s.ref.GetFieldsMessages() {
-	// 	var isArray bool
-	// 	if field, err := message.GetOriginField(); err == nil && field != nil {
-	// 		isArray = tokenutils.TsArray(field)
-	// 	}
-	//
-	// 	params = append(params,
-	// 		&template_TypeAliasParams{
-	// 			Name:  tokenutils.TypeAliasParamName(message),
-	// 			Type:  tokenutils.TypeAliasName(message),
-	// 			Array: isArray,
-	// 		})
-	// }
-	//
-	// for _, field := range s.ref.GetPrimitiveFields() {
-	// 	params = append(params,
-	// 		&template_TypeAliasParams{
-	// 			Name:  field.GetName(),
-	// 			Type:  tokenutils.TsType(field.Type),
-	// 			Array: tokenutils.TsArray(field),
-	// 		},
-	// 	)
-	// }
-	//
+	for _, message := range s.ref.GetFieldsMessages() {
+		if message == nil {
+			log.Println("[typealias] not found message from field")
+			continue
+		}
+
+		var isArray bool
+		if field, err := message.GetOriginField(); err == nil && field != nil {
+			isArray = tokenutils.TsArray(field)
+		}
+
+		params = append(params,
+			&template_TypeAliasParams{
+				Name:  tokenutils.TypeAliasParamName(message),
+				Type:  fmt.Sprintf("%s.%s", message.GetTsNamespacePath(), tokenutils.TypeAliasName(message)),
+				Array: isArray,
+			})
+	}
+
+	for _, field := range s.ref.GetPrimitiveFields() {
+		params = append(params,
+			&template_TypeAliasParams{
+				Name:  field.GetName(),
+				Type:  tokenutils.TsType(field.Type),
+				Array: tokenutils.TsArray(field),
+			},
+		)
+	}
 
 	return template_TypeAlias{
 		Name:       tokenutils.TypeAliasName(s.ref),
