@@ -36,16 +36,20 @@ func (s *TypeAlias) tmplStruct() template_TypeAlias {
 			continue
 		}
 
-		var isArray bool
-		if field, err := message.GetOriginField(); err == nil && field != nil {
-			isArray = tokenutils.TsArray(field)
+		originField, err := message.GetOriginField()
+		if err != nil || originField == nil {
+			log.Println("[typealias] not found origin message for", message.GetName())
+			continue
 		}
 
 		params = append(params,
 			&template_TypeAliasParams{
-				Name:  tokenutils.TypeAliasParamName(message),
-				Type:  fmt.Sprintf("%s.%s", message.GetTsNamespacePath(), tokenutils.TypeAliasName(message)),
-				Array: isArray,
+				Name: originField.GetName(),
+				Type: fmt.Sprintf("%s.%s", proxy.ImportAliasFromFilePath(message.GetFile()), tokenutils.TypeAliasName(message)),
+
+				// NOTE: When needed nested namespaces
+				// Type:  fmt.Sprintf("%s.%s", message.GetTsNamespacePath(), tokenutils.TypeAliasName(message)),
+				Array: tokenutils.TsArray(originField),
 			})
 	}
 

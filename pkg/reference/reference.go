@@ -10,9 +10,8 @@ import (
 )
 
 type Reference struct {
-	tmpl *templatebuilder.TemplateBuilder
-	name string
-	path string
+	tmpl     *templatebuilder.TemplateBuilder
+	FilePath string
 }
 
 type template_Reference struct {
@@ -21,7 +20,7 @@ type template_Reference struct {
 
 func (s *Reference) tmplStruct() *template_Reference {
 	return &template_Reference{
-		Reference: fmt.Sprintf("reference path=\"%s\"", s.path),
+		Reference: fmt.Sprintf("reference path=\"%s\"", s.FilePath),
 	}
 }
 
@@ -30,23 +29,21 @@ func (s *Reference) WriteInto(in io.Writer) error {
 }
 
 type NewParams struct {
-	Storage embed.FS
-	Path    string
-	Name    string
+	Storage  embed.FS
+	FilePath string
 }
 
-const IMPORT_TEMPLATE_FILE = "templates/reference.tmpl"
+const REFERENCE_TEMPLATE_FILE = "templates/reference.tmpl"
 
 func New(params *NewParams) *Reference {
-	templateFile, err := params.Storage.ReadFile(IMPORT_TEMPLATE_FILE)
+	templateFile, err := params.Storage.ReadFile(REFERENCE_TEMPLATE_FILE)
 	if err != nil {
-		log.Panicf("Unable read %s at storage %+v", IMPORT_TEMPLATE_FILE, params.Storage)
+		log.Panicf("Unable read %s at storage %+v", REFERENCE_TEMPLATE_FILE, params.Storage)
 	}
-	tmpl := templatebuilder.New(templateFile, IMPORT_TEMPLATE_FILE)
+	tmpl := templatebuilder.New(templateFile, REFERENCE_TEMPLATE_FILE)
 
 	return &Reference{
-		tmpl: tmpl,
-		name: params.Name,
-		path: params.Path,
+		tmpl:     tmpl,
+		FilePath: params.FilePath,
 	}
 }

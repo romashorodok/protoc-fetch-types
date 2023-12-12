@@ -10,15 +10,17 @@ import (
 	"strings"
 
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/importfrom"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/namespace"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/proxy"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/reference"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/requestfunc"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/tokenutils"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/typealias"
 	"google.golang.org/protobuf/proto"
 )
 
-//go:embed templates/request_func.tmpl templates/type_alias.tmpl templates/namespace.tmpl templates/reference.tmpl
+//go:embed templates/request_func.tmpl templates/type_alias.tmpl templates/namespace.tmpl templates/reference.tmpl templates/importfrom.tmpl
 var storage embed.FS
 
 func fillRegistry(request *plugin.CodeGeneratorRequest) *proxy.Registry {
@@ -82,25 +84,61 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 		var builder strings.Builder
 		log.Printf("[%s] file has dependency %s", file.GetName(), file.GetDependency())
 
+		// TODO: Make file proxy
 		for _, filePath := range file.GetDependency() {
 			dependencyFile, exist := registry.File[filePath]
 			if !exist {
 				continue
 			}
-			importPath := tsFilename(dependencyFile.GetName())
+
+			// Check if current file is not the root of tree.
+			if !tokenutils.IsRoot(requestedFile) {
+				// If dependency file is on the root. I need make backward path
+				if tokenutils.IsRoot(filePath) {
+					backwards := tokenutils.GetBackwardCount(requestedFile)
+					filePath = tokenutils.AppendBackwards(filePath, backwards)
+				} else {
+					filePath = tokenutils.BackwardPath(filePath)
+				}
+			} else {
+				filePath = dependencyFile.GetName()
+			}
+			filePath = tsFilename(filePath)
+
 			_ = reference.New(&reference.NewParams{
-				Storage: storage,
-				Path:    importPath,
-				Name:    dependencyFile.GetPackage(),
+				Storage:  storage,
+				FilePath: filePath,
+			}).WriteInto(&builder)
+
+			_ = importfrom.New(&importfrom.NewParams{
+				Storage:   storage,
+				Namespace: dependencyFile.GetPackage(),
+				AliasName: proxy.ImportAliasFromFilePath(dependencyFile),
+				FilePath:  "./" + strings.TrimSuffix(filePath, ".ts"),
 			}).WriteInto(&builder)
 		}
 
 		namespaceWriter := namespace.NewNamespaceTree(
 			&namespace.NewNestedNamespaceParams{
 				Storage:         storage,
-				NamespaceTokens: proxy.GetNamespaceTokens(file),
+				NamespaceTokens: []string{proxy.GetNamespace(file)},
+
+				// NOTE: When needed nested namespaces
+				// NamespaceTokens: proxy.GetNamespaceTokens(file),
 			},
 		)
+
+		for filenameProtoID, message := range registry.Message {
+			if !strings.HasPrefix(filenameProtoID, requestedFile) {
+				continue
+			}
+			_, exist := registry.AlredyExisted[message.GetFilenameProtoID()]
+			if !exist {
+				_ = typealias.New(storage, message).
+					WriteInto(namespaceWriter)
+				registry.AlredyExisted[message.GetFilenameProtoID()] = struct{}{}
+			}
+		}
 
 		for _, method := range registry.Method {
 			if requestedFile != method.GetFileName() {

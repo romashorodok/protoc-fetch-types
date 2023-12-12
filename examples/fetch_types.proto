@@ -2,3 +2,10 @@ syntax = "proto3";
 
 package fetch;
 
+message TestFetchMessage {
+    string fetch_version = 1;
+}
+
+message TestFetchSecondMessage {
+    string fetch_version_v2 = 1;
+}

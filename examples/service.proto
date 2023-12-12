@@ -5,6 +5,7 @@ import "data/user.proto";
 import "data/metadata/metadata.proto";
 import "data/metadata/null.proto";
 import "data/product/metadata.proto";
+import "fetch_types.proto";
 
 package service;
 
@@ -38,6 +39,7 @@ message ProductOwnerGetRequest {
     data.UserCursor cursor = 1;
     repeated metadata.Metadata params = 2;
     product.Metadata product_metadata = 3;
+    fetch.TestFetchMessage fetchMessage = 4;
 }
 
 message ProductOwnerGetResponse {

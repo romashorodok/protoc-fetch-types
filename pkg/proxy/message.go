@@ -119,6 +119,10 @@ func (p *MessageProxy) GetTsNamespacePath() string {
 	return GetNamespace(p.file)
 }
 
+func (p *MessageProxy) GetFile() *descriptorpb.FileDescriptorProto {
+	return p.file
+}
+
 var _ ProtoProxy = (*MessageProxy)(nil)
 
 type NewMessageProxyParams struct {
