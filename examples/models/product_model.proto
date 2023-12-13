@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package models;
+
+message Product {
+    reserved 1;
+    string title = 2;
+    float price = 3;
+}
+
+message ProductCursor {
+    int32 page = 1;
+    int32 total_pages = 2;
+}

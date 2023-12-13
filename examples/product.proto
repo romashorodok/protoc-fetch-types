@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "models/product_model.proto";
+
+package product;
+
+service ProductService {
+    rpc ProductList(ProductListRequest) returns (ProductListResponse) {
+        option(google.api.http) = {
+            get: "/{version}/products",
+        };
+    };
+}
+
+message ProductListRequest {
+    models.ProductCursor cursor = 1;
+}
+
+message ProductListResponse {
+    repeated models.Product productList = 1;
+}
+
