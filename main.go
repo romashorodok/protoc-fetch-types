@@ -238,28 +238,7 @@ func main() {
 		log.Panic("Unable deserialize request", err)
 	}
 
-	// targetFile := "fetch_types.proto"
-
-	// var generateTargetFile bool
-	// for _, file := range req.FileToGenerate {
-	// 	if file == targetFile {
-	// 		generateTargetFile = true
-	// 		break
-	// 	}
-	// }
-
 	resp := generate(req)
-
-	// respFiles := []*plugin.CodeGeneratorResponse_File{
-	// 	{
-	// 		Name:    proto.String(fmt.Sprintf("%s%s", strings.TrimSuffix(targetFile, ".proto"), ".ts")),
-	// 		Content: proto.String(result),
-	// 	},
-	// }
-
-	// resp := &plugin.CodeGeneratorResponse{
-	// 	File: respFiles,
-	// }
 
 	res, err := proto.Marshal(resp)
 	if err != nil {
