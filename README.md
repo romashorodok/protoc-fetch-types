@@ -41,5 +41,9 @@ plugins:
   - plugin: protoc-gen-fetch-types
     path: ./protoc-gen-fetch-types
     # The output folder for the code, where it can be bundled
-    out: ./examples/gen 
+    out: ./examples/gen
+    opt:
+      # Exclude google protobuf annotations when generate imports
+      # Also may add own ignore `["google" "myprefix"]`
+      - import_ignore=["google"]
 ```
