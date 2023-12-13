@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package fetch;
+
+import "google/protobuf/descriptor.proto";
+
+option (import) = {
+    ignore: [];
+};
+
+// Look at spec
+// https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto
+
+message ImportSettings {
+    repeated string ignore = 1;
+}
+
+// How they use it
+// https://github.com/googleapis/googleapis/blob/2aa3b1d5a90d05e0606d11787de475b0df068d49/google/api/annotations.proto#L30C23-L30C23
+
+// https://github.com/protocolbuffers/protobuf/blob/6c7c5a5d2a6befdc4117242671612146efa50679/src/google/protobuf/descriptor.proto#L424
+extend google.protobuf.FileOptions {
+    ImportSettings import = 97324815;
+}
+

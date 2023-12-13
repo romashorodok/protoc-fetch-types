@@ -1,7 +1,6 @@
 package tokenutils
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/proxy"
@@ -55,9 +54,5 @@ func TsArray(field *descriptorpb.FieldDescriptorProto) bool {
 }
 
 func TypeAliasName(message *proxy.MessageProxy) string {
-	return fmt.Sprintf("%sPackage%s", message.GetName(), Uppercase(message.GetPackageName()))
-}
-
-func TypeAliasParamName(message *proxy.MessageProxy) string {
-	return fmt.Sprintf("%s_%s", Lowercase(message.GetName()), message.GetPackageName())
+	return message.GetName()
 }

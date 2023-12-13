@@ -6,111 +6,224 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/importfrom"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/namespace"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/proxy"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/reference"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/requestfunc"
-	"github.com/romashorodok/protoc-gen-fetch-types/pkg/resources"
+	"github.com/romashorodok/protoc-gen-fetch-types/pkg/tokenutils"
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/typealias"
 	"google.golang.org/protobuf/proto"
 )
 
-//go:embed templates/request_func.tmpl templates/type_alias.tmpl
+const FETCH_TYPES_FILENAME = "fetch_types.proto"
+
+//go:embed templates/request_func.tmpl templates/type_alias.tmpl templates/namespace.tmpl templates/reference.tmpl templates/importfrom.tmpl
 var storage embed.FS
 
-type (
-	T_requestFuncTree = map[resources.ProtoID]*requestfunc.RequestFunc
-	T_typeAliasTree   = map[resources.FilenameProtoID]*typealias.TypeAlias
-)
+func fillRegistry(request *plugin.CodeGeneratorRequest) *proxy.Registry {
+	registry := proxy.NewRegistry()
 
-var (
-	requestFuncTree = make(T_requestFuncTree)
-	typeAliasTree   = make(T_typeAliasTree)
-)
+	var fileNames []string
+	var packageNames []string
 
-var (
-	methodRegistry          = make(proxy.T_methodRegistry)
-	messageFilenameRegistry = make(proxy.T_messageFilenameRegistry)
-)
+	// Protoc start requesting top level files in tree from bottom to up
+	// I cannot access from bottom files upper files. They must be imported
+	for _, file := range request.ProtoFile {
+		fileNames = append(fileNames, file.GetName())
+		packageNames = append(packageNames, file.GetPackage())
+		registry.File[file.GetName()] = file
 
-func fillRegistry(request *plugin.CodeGeneratorRequest) {
-	for _, protoFile := range request.ProtoFile {
-
-		packageName := protoFile.GetPackage()
-
-		for _, protoService := range protoFile.Service {
+		for _, protoService := range file.Service {
 			serviceName := protoService.GetName()
 
 			for _, method := range protoService.Method {
 				methodProxy := proxy.NewMethodProxy(
 					&proxy.NewMethodProxyParams{
-						ServiceID:               fmt.Sprintf(".%s.%s", packageName, serviceName),
-						File:                    protoFile,
-						MethodDescriptor:        method,
-						MessageFilenameRegistry: messageFilenameRegistry,
+						MethodDescriptor: method,
+						ServiceID:        fmt.Sprintf(".%s.%s", file.GetPackage(), serviceName),
+						Registy:          registry,
+						File:             file,
 					},
 				)
-				methodRegistry[methodProxy.GetProtoID()] = methodProxy
+				registry.Method[methodProxy.GetFilenameProtoID()] = methodProxy
 			}
 		}
 
-		for _, protoMessage := range protoFile.MessageType {
+		for _, protoMessage := range file.MessageType {
 			messageProxy := proxy.NewMessageProxy(
 				&proxy.NewMessageProxyParams{
-					PackageID:               fmt.Sprintf(".%s", packageName),
-					File:                    protoFile,
-					DescriptorProto:         protoMessage,
-					MessageFilenameRegistry: messageFilenameRegistry,
+					DescriptorProto: protoMessage,
+					Registry:        registry,
+					File:            file,
 				},
 			)
-			messageFilenameRegistry[messageProxy.GetFilenameProtoID()] = messageProxy
+			registry.Message[messageProxy.GetFilenameProtoID()] = messageProxy
 		}
 	}
+	log.Printf("%s files has access to %s files contains %s", request.FileToGenerate, fileNames, packageNames)
+	return registry
 }
 
-func generate(req *plugin.CodeGeneratorRequest) string {
-	var builder strings.Builder
+func tsFilename(name string) string {
+	return strings.TrimSuffix(name, filepath.Ext(name)) + ".ts"
+}
 
-	fillRegistry(req)
+type GeneratorOptions struct {
+	ImportIgnorePrefixes []string
+}
 
-	for _, method := range methodRegistry {
-		inputMessage := method.GetInputMessage()
-		outputMessage := method.GetOutputMessage()
+func options(compilerOptions string) *GeneratorOptions {
+	var result GeneratorOptions
 
-		_, exist := messageFilenameRegistry[inputMessage.GetFilenameProtoID()]
+	options := strings.Split(compilerOptions, ",")
+
+	for _, opt := range options {
+		slice := strings.Split(opt, "=")
+		name, value := slice[0], slice[1]
+		switch name {
+		case "import_ignore":
+			re := regexp.MustCompile(`"([^"]+)"`)
+			matches := re.FindAllString(value, -1)
+			for idx, match := range matches {
+				match = strings.Trim(match, `"`)
+				matches[idx] = match
+			}
+			result.ImportIgnorePrefixes = matches
+		}
+	}
+	return &result
+}
+
+func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
+	registry := fillRegistry(req)
+	var response plugin.CodeGeneratorResponse
+
+	generatorOptions := options(req.GetParameter())
+
+	for _, requestedFile := range req.FileToGenerate {
+		file, exist := registry.File[requestedFile]
 		if !exist {
+			log.Printf("[Warning] Requestd file not found in registry. Ignoring %s", requestedFile)
 			continue
 		}
+		var builder strings.Builder
+		log.Printf("[%s] file has dependency %s", file.GetName(), file.GetDependency())
 
-		for _, msg := range inputMessage.GetFieldsMessages() {
-			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
+		// TODO: Make file proxy
+		for _, filePath := range file.GetDependency() {
+			dependencyFile, exist := registry.File[filePath]
+			if !exist {
+				continue
+			}
+
+			// If dependency file in ignore just skip it
+			namespaceTokens := proxy.GetNamespaceTokens(dependencyFile)
+			if tokenutils.HasNamespaceToken(namespaceTokens, generatorOptions.ImportIgnorePrefixes) {
+				log.Printf("[IGNORE] Ignored import for %s", dependencyFile.GetName())
+				continue
+			}
+
+			// Check if current file is not the root of tree.
+			if !tokenutils.IsRoot(requestedFile) {
+				// If dependency file is on the root. I need make backward path
+				if tokenutils.IsRoot(filePath) {
+					backwards := tokenutils.GetBackwardCount(requestedFile)
+					filePath = tokenutils.AppendBackwards(filePath, backwards)
+				} else {
+					filePath = tokenutils.BackwardPath(filePath)
+				}
+			} else {
+				filePath = dependencyFile.GetName()
+			}
+			filePath = tsFilename(filePath)
+
+			_ = reference.New(&reference.NewParams{
+				Storage:  storage,
+				FilePath: filePath,
+			}).WriteInto(&builder)
+
+			_ = importfrom.New(&importfrom.NewParams{
+				Storage:   storage,
+				Namespace: dependencyFile.GetPackage(),
+				AliasName: proxy.ImportAliasFromFilePath(dependencyFile),
+				FilePath:  "./" + strings.TrimSuffix(filePath, ".ts"),
+			}).WriteInto(&builder)
 		}
-		for _, msg := range outputMessage.GetFieldsMessages() {
-			typeAliasTree[msg.GetFilenameProtoID()] = typealias.New(storage, msg)
-		}
 
-		typeAliasTree[inputMessage.GetFilenameProtoID()] = typealias.New(storage, inputMessage)
-		typeAliasTree[outputMessage.GetFilenameProtoID()] = typealias.New(storage, outputMessage)
+		namespaceWriter := namespace.NewNamespaceTree(
+			&namespace.NewNestedNamespaceParams{
+				Storage:         storage,
+				NamespaceTokens: []string{proxy.GetNamespace(file)},
 
-		requestFuncTree[method.GetFilenameProtoID()] = requestfunc.New(
-			&requestfunc.NewParamsRequest{
-				Storage:                 storage,
-				MessageFilenameRegistry: messageFilenameRegistry,
-				Ref:                     method,
+				// NOTE: When needed nested namespaces
+				// NamespaceTokens: proxy.GetNamespaceTokens(file),
 			},
 		)
-	}
 
-	for _, typeAliases := range typeAliasTree {
-		_ = typeAliases.WriteInto(&builder)
-	}
+		for filenameProtoID, message := range registry.Message {
+			if !strings.HasPrefix(filenameProtoID, requestedFile) {
+				continue
+			}
+			_, exist := registry.AlredyExisted[message.GetFilenameProtoID()]
+			if !exist {
+				_ = typealias.New(storage, message).
+					WriteInto(namespaceWriter)
+				registry.AlredyExisted[message.GetFilenameProtoID()] = struct{}{}
+			}
+		}
 
-	for _, requestFunc := range requestFuncTree {
-		_ = requestFunc.WriteInto(&builder)
-	}
+		for _, method := range registry.Method {
+			if requestedFile != method.GetFileName() {
+				continue
+			}
 
-	return builder.String()
+			// TODO: rename input to request
+			inputMessage := method.GetInputMessage()
+
+			for _, localMessage := range inputMessage.GetLocalFieldMessages() {
+				_, exist := registry.AlredyExisted[localMessage.GetFilenameProtoID()]
+				if exist {
+					continue
+				}
+				_ = typealias.New(storage, localMessage).
+					WriteInto(namespaceWriter)
+				registry.AlredyExisted[localMessage.GetFilenameProtoID()] = struct{}{}
+			}
+
+			_, exist := registry.AlredyExisted[inputMessage.GetFilenameProtoID()]
+			if !exist {
+				_ = typealias.New(storage, inputMessage).
+					WriteInto(namespaceWriter)
+				registry.AlredyExisted[inputMessage.GetFilenameProtoID()] = struct{}{}
+			}
+
+			_, exist = registry.AlredyExisted[method.GetFilenameProtoID()]
+			if !exist {
+				_ = requestfunc.New(
+					&requestfunc.NewParamsRequest{
+						Storage: storage,
+						Ref:     method,
+					},
+				).WriteInto(namespaceWriter)
+				registry.AlredyExisted[method.GetFilenameProtoID()] = struct{}{}
+			}
+		}
+
+		namespaceWriter.Close()
+		builder.WriteString(namespaceWriter.GetResult().String())
+
+		response.File = append(response.File, &plugin.CodeGeneratorResponse_File{
+			Name:    proto.String(tsFilename(requestedFile)),
+			Content: proto.String(builder.String()),
+		})
+	}
+	return &response
 }
 
 func main() {
@@ -125,38 +238,15 @@ func main() {
 		log.Panic("Unable deserialize request", err)
 	}
 
-	targetFile := "fetch_types.proto"
+	resp := generate(req)
 
-	var generateTargetFile bool
-	for _, file := range req.FileToGenerate {
-		if file == targetFile {
-			generateTargetFile = true
-			break
-		}
+	res, err := proto.Marshal(resp)
+	if err != nil {
+		log.Panic("Unable serialize response", err)
 	}
 
-	if generateTargetFile {
-		result := generate(req)
-
-		respFiles := []*plugin.CodeGeneratorResponse_File{
-			{
-				Name:    proto.String(fmt.Sprintf("%s%s", strings.TrimSuffix(targetFile, ".proto"), ".ts")),
-				Content: proto.String(result),
-			},
-		}
-
-		resp := &plugin.CodeGeneratorResponse{
-			File: respFiles,
-		}
-
-		res, err := proto.Marshal(resp)
-		if err != nil {
-			log.Panic("Unable serialize response", err)
-		}
-
-		_, err = os.Stdout.Write(res)
-		if err != nil {
-			log.Panic("Unable send response", err)
-		}
+	_, err = os.Stdout.Write(res)
+	if err != nil {
+		log.Panic("Unable send response", err)
 	}
 }

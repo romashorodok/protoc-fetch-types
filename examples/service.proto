@@ -62,6 +62,7 @@ message ProductListResponse {
 }
 
 message ProductDeleteRequest {
+    int32 test = 1;
 }
 
 message ProductDeleteResponse {

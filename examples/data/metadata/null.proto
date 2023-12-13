@@ -1,7 +1,18 @@
 syntax  = "proto3";
 
+import "google/api/annotations.proto";
+import "data/product/metadata.proto";
+
 package metadata;
 
 message NullRequest {
     string nullTextSample = 1;
+}
+
+service NullMetadataService {
+    rpc ProductList(NullRequest) returns (product.Metadata) {
+        option(google.api.http) = {
+            get: "/{version}/data/metadata/null",
+        };
+    };
 }

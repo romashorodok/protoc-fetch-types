@@ -2,6 +2,7 @@ package typealias
 
 import (
 	"embed"
+	"fmt"
 	"io"
 	"log"
 
@@ -30,16 +31,25 @@ func (s *TypeAlias) tmplStruct() template_TypeAlias {
 	var params []*template_TypeAliasParams
 
 	for _, message := range s.ref.GetFieldsMessages() {
-		var isArray bool
-		if field, err := message.GetOriginField(); err == nil {
-			isArray = tokenutils.TsArray(field)
+		if message == nil {
+			log.Println("[typealias] not found message from field")
+			continue
+		}
+
+		originField, err := message.GetOriginField()
+		if err != nil || originField == nil {
+			log.Println("[typealias] not found origin message for", message.GetName())
+			continue
 		}
 
 		params = append(params,
 			&template_TypeAliasParams{
-				Name:  tokenutils.TypeAliasParamName(message),
-				Type:  tokenutils.TypeAliasName(message),
-				Array: isArray,
+				Name: originField.GetName(),
+				Type: fmt.Sprintf("%s.%s", proxy.ImportAliasFromFilePath(message.GetFile()), tokenutils.TypeAliasName(message)),
+
+				// NOTE: When needed nested namespaces
+				// Type:  fmt.Sprintf("%s.%s", message.GetTsNamespacePath(), tokenutils.TypeAliasName(message)),
+				Array: tokenutils.TsArray(originField),
 			})
 	}
 

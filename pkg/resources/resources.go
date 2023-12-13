@@ -5,3 +5,4 @@ type (
 	// Filename:ProtoID
 	FilenameProtoID = string
 )
+
