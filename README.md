@@ -14,19 +14,9 @@ It even might require to integrate it into the system, replacing the logic of ho
 ### What I do 
 I take the http annotation values and generate `Request` for fetch.
 
-Signature looks like that:
-```typescript
-export type ProductDeleteRequestPackageService = { };
+Example of the result:
+https://github.com/romashorodok/protoc-gen-fetch-types/blob/376dd630e3e7961c6b9d41d06943dcbb95079ed2/examples/gen/product.ts#L1-L16
 
-type ProductDeleteParams = { version: string; id: string; };
-export function ProductDelete(authority: string, params: ProductDeleteParams, body: ProductDeleteRequestPackageService, init?: RequestInit) {
-  return new Request(`${authority}/${params.version}/product/${params.id}`, {
-    method: 'DELETE',
-    body: JSON.stringify(body),
-    ...init,
-  });
-}
-````
 Other examples can be found at [examples](https://github.com/romashorodok/protoc-gen-fetch-types/tree/main/examples) folder.
   
 ## How to use it ?
