@@ -34,3 +34,20 @@ func AppendBackwards(filePath string, backwards int) string {
 	result += filePath
 	return result
 }
+
+func HasNamespaceToken(tokens0, tokens1 []string) bool {
+	elementMap := make(map[string]struct{})
+
+	for _, element := range tokens0 {
+		elementMap[element] = struct{}{}
+	}
+
+	for _, element := range tokens1 {
+		_, exist := elementMap[element]
+		if exist {
+			return true
+		}
+	}
+
+	return false
+}

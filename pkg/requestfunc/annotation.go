@@ -29,6 +29,7 @@ func getHttpField(httpRule *annotations.HttpRule) (pattern, method string) {
 
 // return - (pattern string, requestMethod string, err error)
 func googleHttpAnnotation(method *proxy.MethodProxy) (string, string, error) {
+    // https://github.com/googleapis/googleapis/blob/2aa3b1d5a90d05e0606d11787de475b0df068d49/google/api/annotations.proto#L30C23-L30C23
 	httpRule_Any := proto.GetExtension(method.GetOptions(), annotations.E_Http)
 
 	if httpRule, ok := httpRule_Any.(*annotations.HttpRule); ok {

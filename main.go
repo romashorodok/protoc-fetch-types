@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -19,6 +20,8 @@ import (
 	"github.com/romashorodok/protoc-gen-fetch-types/pkg/typealias"
 	"google.golang.org/protobuf/proto"
 )
+
+const FETCH_TYPES_FILENAME = "fetch_types.proto"
 
 //go:embed templates/request_func.tmpl templates/type_alias.tmpl templates/namespace.tmpl templates/reference.tmpl templates/importfrom.tmpl
 var storage embed.FS
@@ -71,9 +74,37 @@ func tsFilename(name string) string {
 	return strings.TrimSuffix(name, filepath.Ext(name)) + ".ts"
 }
 
+type GeneratorOptions struct {
+	ImportIgnorePrefixes []string
+}
+
+func options(compilerOptions string) *GeneratorOptions {
+	var result GeneratorOptions
+
+	options := strings.Split(compilerOptions, ",")
+
+	for _, opt := range options {
+		slice := strings.Split(opt, "=")
+		name, value := slice[0], slice[1]
+		switch name {
+		case "import_ignore":
+			re := regexp.MustCompile(`"([^"]+)"`)
+			matches := re.FindAllString(value, -1)
+			for idx, match := range matches {
+				match = strings.Trim(match, `"`)
+				matches[idx] = match
+			}
+			result.ImportIgnorePrefixes = matches
+		}
+	}
+	return &result
+}
+
 func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 	registry := fillRegistry(req)
 	var response plugin.CodeGeneratorResponse
+
+	generatorOptions := options(req.GetParameter())
 
 	for _, requestedFile := range req.FileToGenerate {
 		file, exist := registry.File[requestedFile]
@@ -88,6 +119,13 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 		for _, filePath := range file.GetDependency() {
 			dependencyFile, exist := registry.File[filePath]
 			if !exist {
+				continue
+			}
+
+			// If dependency file in ignore just skip it
+			namespaceTokens := proxy.GetNamespaceTokens(dependencyFile)
+			if tokenutils.HasNamespaceToken(namespaceTokens, generatorOptions.ImportIgnorePrefixes) {
+				log.Printf("[IGNORE] Ignored import for %s", dependencyFile.GetName())
 				continue
 			}
 

@@ -2,13 +2,11 @@ syntax  = "proto3";
 
 import "google/api/annotations.proto";
 import "data/product/metadata.proto";
-import "fetch_types.proto";
 
 package metadata;
 
 message NullRequest {
     string nullTextSample = 1;
-    fetch.TestFetchSecondMessage testFetch = 2;
 }
 
 service NullMetadataService {

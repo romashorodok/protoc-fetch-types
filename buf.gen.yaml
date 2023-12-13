@@ -5,3 +5,5 @@ plugins:
   - plugin: protoc-gen-fetch-types
     path: ./protoc-gen-fetch-types
     out: ./examples/gen
+    opt: 
+      - import_ignore=["google" "test"]
