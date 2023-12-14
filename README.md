@@ -44,6 +44,7 @@ plugins:
     out: ./examples/gen
     opt:
       # Exclude google protobuf annotations when generate imports
-      # Also may add own ignore `["google" "myprefix"]`
+      # NOTE: name must be a package first prefix name. Not a file name or folder
+      # Also may add own ignore `["google" "openapiv3"]`
       - import_ignore=["google"]
 ```

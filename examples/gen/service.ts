@@ -8,13 +8,31 @@ import { metadata as dataMetadataNull } from "./data/metadata/null";
 import { product as dataProductMetadata } from "./data/product/metadata";
 export namespace service {
     export type ProductOwnerGetRequest = { cursor: dataUser.UserCursor; params: Array<dataMetadataMetadata.Metadata>; product_metadata: dataProductMetadata.Metadata; };
-    export type ProductListResponse = { productList: Array<service.Product>; };
-    export type ProductListRequest = { cursor: service.Cursor; };
+    export type Product = { title: string; price: number; };
     export type ProductDeleteRequest = { test: number; };
+    export type ProductListResponse = { productList: Array<service.Product>; };
+    export type Cursor = { position: number; };
+    export type ProductListRequest = { cursor: service.Cursor; };
     export type ProductDeleteResponse = { ok: boolean; };
     export type ProductOwnerGetResponse = { user: dataUser.User; };
-    export type Cursor = { position: number; };
-    export type Product = { title: string; price: number; };
+    
+    type ProductListParams = { version: string; };
+    export function ProductList(authority: string, params: ProductListParams, body: ProductListRequest, init?: RequestInit) {
+      return new Request(`${authority}/${params.version}/products`, {
+        method: 'GET',
+        body: JSON.stringify(body),
+        ...init,
+      });
+    }
+    
+    type ProductDeleteParams = { version: string; id: string; };
+    export function ProductDelete(authority: string, params: ProductDeleteParams, body: ProductDeleteRequest, init?: RequestInit) {
+      return new Request(`${authority}/${params.version}/product/${params.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify(body),
+        ...init,
+      });
+    }
     
     type ProductOwnerGetParams = { version: string; id: string; };
     export function ProductOwnerGet(authority: string, params: ProductOwnerGetParams, body: ProductOwnerGetRequest, init?: RequestInit) {
@@ -30,24 +48,6 @@ export namespace service {
     export function ProductStubGet(authority: string, params: ProductStubGetParams, body: NullRequest, init?: RequestInit) {
       return new Request(`${authority}/${params.stub}/product/${params.id}/owner`, {
         method: 'GET',
-        body: JSON.stringify(body),
-        ...init,
-      });
-    }
-    
-    type ProductListParams = { version: string; };
-    export function ProductList(authority: string, params: ProductListParams, body: ProductListRequest, init?: RequestInit) {
-      return new Request(`${authority}/${params.version}/products`, {
-        method: 'GET',
-        body: JSON.stringify(body),
-        ...init,
-      });
-    }
-    
-    type ProductDeleteParams = { version: string; id: string; };
-    export function ProductDelete(authority: string, params: ProductDeleteParams, body: ProductDeleteRequest, init?: RequestInit) {
-      return new Request(`${authority}/${params.version}/product/${params.id}`, {
-        method: 'DELETE',
         body: JSON.stringify(body),
         ...init,
       });

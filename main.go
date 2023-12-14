@@ -114,6 +114,11 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 		}
 		var builder strings.Builder
 		log.Printf("[%s] file has dependency %s", file.GetName(), file.GetDependency())
+		requestedNamespace := proxy.GetNamespaceTokens(file)
+		if tokenutils.HasNamespaceToken(requestedNamespace, generatorOptions.ImportIgnorePrefixes) {
+			log.Printf("[IGNORE] Ignored generating %s", file.GetName())
+			continue
+		}
 
 		// TODO: Make file proxy
 		for _, filePath := range file.GetDependency() {
