@@ -20,15 +20,6 @@ https://github.com/romashorodok/protoc-gen-fetch-types/blob/376dd630e3e7961c6b9d
 Other examples can be found at [examples](https://github.com/romashorodok/protoc-gen-fetch-types/tree/main/examples) folder.
   
 ## How to use it ?
-> [!WARNING]
-> Protoc generators have the limitation of generating a single file that does not exist. You must create a file in your protobuf folder with the name `fetch_types.proto`
-
-fetch_types.proto
-```protobuf
-syntax = "proto3";
-package fetch;
-```
-
 Currently, you need build it by hand:
 ```shell
 go build -o protoc-gen-fetch-types main.go
