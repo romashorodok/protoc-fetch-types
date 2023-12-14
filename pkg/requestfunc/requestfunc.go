@@ -46,8 +46,12 @@ func (s *RequestFunc) tmplStruct() *template_RequestFunc {
 
 	uriPath, params, err := parsePattern(pattern)
 	if err != nil {
-		log.Printf("%s. For %s requestfunc.parsePattern", err, s.ref.GetName())
-		return nil
+		if err == NotFoundParamsError {
+            uriPath = pattern
+		} else {
+			log.Printf("%s. For %s requestfunc.parsePattern", err, s.ref.GetName())
+			return nil
+		}
 	}
 
 	var requestParams []*template_RequestParams

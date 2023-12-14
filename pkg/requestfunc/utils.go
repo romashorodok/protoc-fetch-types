@@ -1,17 +1,20 @@
 package requestfunc
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 )
+
+var NotFoundParamsError = errors.New("Not found params")
 
 func extractParams(target string) ([]string, error) {
 	re := regexp.MustCompile(`\{([^{}]+)\}`)
 	matches := re.FindAllStringSubmatch(target, -1)
 
 	if matches == nil {
-		return nil, fmt.Errorf("no matches found")
+		return nil, NotFoundParamsError
 	}
 
 	var values []string
