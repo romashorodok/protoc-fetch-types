@@ -155,7 +155,7 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 
 			_ = importfrom.New(&importfrom.NewParams{
 				Storage:   storage,
-				Namespace: dependencyFile.GetPackage(),
+				Namespace: proxy.PackageNamespaceSuffix(dependencyFile),
 				AliasName: proxy.ImportAliasFromFilePath(dependencyFile),
 				FilePath:  "./" + strings.TrimSuffix(filePath, ".ts"),
 			}).WriteInto(&builder)
@@ -166,7 +166,7 @@ func generate(req *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 				Storage:         storage,
 				NamespaceTokens: []string{proxy.GetNamespace(file)},
 
-				// NOTE: When needed nested namespaces
+				// NOTE: When will need nested namespaces
 				// NamespaceTokens: proxy.GetNamespaceTokens(file),
 			},
 		)

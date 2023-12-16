@@ -2,7 +2,6 @@ package typealias
 
 import (
 	"embed"
-	"fmt"
 	"io"
 	"log"
 
@@ -42,11 +41,19 @@ func (s *TypeAlias) tmplStruct() template_TypeAlias {
 			continue
 		}
 
+		var Type string
+		Type += proxy.ImportAliasFromFilePath(message.GetFile()) + "."
+
+		namespacePrefix := proxy.PackageNamespacePrefix(message.GetFile())
+		if namespacePrefix != "" {
+			Type += namespacePrefix + "."
+		}
+		Type += tokenutils.TypeAliasName(message)
+
 		params = append(params,
 			&template_TypeAliasParams{
 				Name: originField.GetName(),
-				Type: fmt.Sprintf("%s.%s", proxy.ImportAliasFromFilePath(message.GetFile()), tokenutils.TypeAliasName(message)),
-
+				Type: Type,
 				// NOTE: When needed nested namespaces
 				// Type:  fmt.Sprintf("%s.%s", message.GetTsNamespacePath(), tokenutils.TypeAliasName(message)),
 				Array: tokenutils.TsArray(originField),

@@ -7,7 +7,10 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-const unixPathSeparator = "/"
+const (
+	unixPathSeparator = "/"
+	packageSeparator  = "."
+)
 
 func uppercase(s string) string {
 	if len(s) == 0 {
@@ -41,7 +44,33 @@ func ImportAliasFromFilePath(file *descriptorpb.FileDescriptorProto) string {
 		}
 		result += uppercase(token)
 	}
+
 	return result
+}
+
+// NOTE: It's actually support nested namespaces but like that `namespace room.models { ... }`
+// To do that it should be in one folder and has package name like that `room.models`.
+// EXAMPLE:
+// import { room as modelsRoom_models } from "./models/room_models";
+// ...
+//
+//	↓
+//
+// export type RoomCreateResponse = { room: modelsRoom_models.models.Room; };
+func PackageNamespacePrefix(file *descriptorpb.FileDescriptorProto) string {
+	var result string
+	namespacePackage := strings.Split(file.GetPackage(), packageSeparator)
+	if len(namespacePackage) > 1 {
+		namespacePackage = namespacePackage[1:]
+		for _, packageNamespace := range namespacePackage {
+			result += packageNamespace + packageSeparator
+		}
+	}
+    return strings.TrimRight(result, packageSeparator)
+}
+
+func PackageNamespaceSuffix(file *descriptorpb.FileDescriptorProto) string {
+    return strings.SplitN(file.GetPackage(), packageSeparator, 2)[0]
 }
 
 func GetNamespace(file *descriptorpb.FileDescriptorProto) string {
